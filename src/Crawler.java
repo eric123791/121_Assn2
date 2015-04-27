@@ -1,12 +1,12 @@
-package ir.assignments.three;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
+import java.util.TreeMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.io.*;
 
 import org.apache.http.Header;
 
@@ -22,41 +22,35 @@ public class Crawler extends WebCrawler {
 	static int numUrl = 0;
 
 	//helper for 3
-	public static Map<String, Integer> subdomainList  = new HashMap<String, Integer>();
+	public static Map<String, Integer> subdomainList  = new TreeMap<String, Integer>();
+	static int numSubDomain = 0;
 
 	//helper for 4
-	static int longestPageLength = 0;
-	static String longestPageUrl;
+	public static int longestPageLength = 0;
+	public static String longestPageUrl;
 
 	//helper for 5
-	static List<String> wordsList = new ArrayList<String>();
+	public static Map<String, Integer> wordList = new TreeMap<String, Integer>();
 
 
-
-	private static final Pattern FILTERS = Pattern.compile(".*\\.(bmp|gif|jpg|png|css|js|mid|mp2|mp3|mp4"
-			+ "|wav|avi|mov|mpeg|ram|m4v|pdf|rm|smil|wmv|swf|wma|zip|rar|gz)$");
+	private static final Pattern FILTERS = Pattern.compile(".*\\.(css|js|bmp|gif|jpe?g|ico" + "|png|tiff?|mid|mp2|mp3|mp4"
+			    + "|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf" 
+			    + "|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso|epub|dll|cnf|tgz|sha1" 
+			    + "|thmx|mso|arff|rtf|jar|csv"
+			    + "|rm|smil|wmv|swf|wma|zip|rar|gz)$");
 	@Override
 	public boolean shouldVisit(Page referringPage, WebURL url) {
 		String href = url.getURL().toLowerCase();
 		// Ignore the url if it has an extension that matches our defined set of image extensions.
-		if (FILTERS.matcher(href).matches()) 
+		if (FILTERS.matcher(href).matches())
 			return false;
 		if(!href.contains(".ics.uci.edu"))
 			return false;
 
-		return findTrap(href);
-	}
-
-	private boolean findTrap (String href)
-	{
-		if (href.contains("?"))
-			return false;
-		else if (href.contains("calendar.ics.uci.edu")) 
-			return false;
-		else if (href.contains("http://archive.ics.uci.edu/ml/datasets.html")) 
+		if (href.contains("?") && href.contains("="))
 			return false;
 
-		return true;	
+		return true;
 	}
 
 	/**
@@ -65,6 +59,7 @@ public class Crawler extends WebCrawler {
 	 */
 	@Override
 	public void visit(Page page) {
+		
 
 		//getting page date
 		int docid = page.getWebURL().getDocid();
@@ -74,7 +69,7 @@ public class Crawler extends WebCrawler {
 		String subDomain = page.getWebURL().getSubDomain();
 		String parentUrl = page.getWebURL().getParentUrl();
 		String anchor = page.getWebURL().getAnchor();
-
+		
 		logger.debug("Docid: {}", docid);
 		logger.info("URL: {}", url);
 		logger.debug("Domain: '{}'", domain);
@@ -87,15 +82,24 @@ public class Crawler extends WebCrawler {
 		if(!urlList.contains(url))
 		{
 			urlList.add(url);
-			++numUrl;			
+			++numUrl;
+			try(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("url.txt", true)))) {
+   		 out.println(url);
+		}catch (IOException e) {}
 		}
-		
+
 		//add to subdomainList 1)not found add new 2) increment the count
-		if(!subdomainList.containsKey(subDomain))
-			subdomainList.put(subDomain, 1);
+		if(!subdomainList.containsKey(subDomain+ "." +domain))
+		{
+			subdomainList.put(subDomain+ "." +domain, 1);
+			++numSubDomain;
+			try(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("subdomain.txt", true)))) {
+				out.println(subDomain+ "." +domain);
+				}catch (IOException e) {}
+		}
 		else
 		{
-			subdomainList.put(subDomain, subdomainList.get(subDomain)+1);
+			subdomainList.put(subDomain, subdomainList.get(subDomain+ "." +domain)+1);
 		}
 
 		//getting data of the page
@@ -109,21 +113,16 @@ public class Crawler extends WebCrawler {
 			{
 				longestPageLength = text.length();
 				longestPageUrl = url;
-			}	
-			
-			try {
-				wordsList.addAll(Utilities.tokenizeString(text));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				System.out.println("add words to words problem");
-				e.printStackTrace();
 			}
-			
-			
+
+			//need to modiefied//////////////////////////////////////////////////////////////
+			processWord(text);
+
+
 			logger.debug("Text length: {}", text.length());
 			logger.debug("Html length: {}", html.length());
 			logger.debug("Number of outgoing links: {}", links.size());
-			
+
 		}
 
 		//no idea
@@ -142,7 +141,7 @@ public class Crawler extends WebCrawler {
 	 * This method is for testing purposes only. It does not need to be used
 	 * to answer any of the questions in the assignment. However, it must
 	 * function as specified so that your crawler can be verified programatically.
-	 * 
+	 *
 	 * This methods performs a crawl starting at the specified seed URL. Returns a
 	 * collection containing all URLs visited during the crawl.
 	 */
@@ -150,4 +149,80 @@ public class Crawler extends WebCrawler {
 		// TODO implement me
 		return null;
 	}
+
+	
+	public static void printAllWords() throws Exception
+	{
+		PrintWriter writer = new PrintWriter("CommonWords.txt");
+		for(Map.Entry<String,Integer> entry : wordList.entrySet())
+		{
+			String key = entry.getKey();
+			Integer value = entry.getValue();
+			writer.println(key+" : "+value);
+		}
+		writer.close();
+	}
+	
+	public static void print500Words() throws Exception
+	{
+		PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("Answers.txt", true))) ;
+		int i = 0;
+		for(Map.Entry<String,Integer> entry : wordList.entrySet())
+		{
+			if(i>=500)
+			{
+				out.close();
+				return;
+			}
+			String key = entry.getKey();
+			Integer value = entry.getValue();
+			out.println(key+" : "+value);
+			++i;
+		}
+		out.close();
+	}
+
+	public static void printUrl() throws Exception
+	{
+		PrintWriter writer = new PrintWriter("URL.txt");
+			int size  = urlList.size();
+			for(int i = 0; i < size; ++i)
+			{
+				writer.write(urlList.get(i));
+			}
+		writer.close();
+	}
+
+	public static void printSubDomain() throws Exception
+	{
+		PrintWriter writer = new PrintWriter("Subdomains.txt");
+		for(Map.Entry<String,Integer> entry : subdomainList.entrySet())
+		{
+			String key = entry.getKey();
+			Integer value = entry.getValue();
+			writer.println(key+" : "+value);
+		}
+		writer.close();
+	}
+	
+	private static void processWord(String words)
+	{
+		try{
+			ArrayList<String> temp = Utilities.tokenizeString(words);
+		
+			int size = temp.size();
+		
+			for(int i = 0; i < size; ++i)
+			{
+				Integer n = wordList.get(temp.get(i));
+				n = (n == null) ? 1: ++n;
+				wordList.put(temp.get(i), n);
+			}
+		}catch( Exception e){
+		System.out.println("PROCESS WORDS ERROR");
+			return;
+		}
+		
+	}
+
 }

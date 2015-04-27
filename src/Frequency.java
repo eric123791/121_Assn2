@@ -1,5 +1,4 @@
 // Hua Hsin 49399981
-package ir.assignments.three;
 
 /**
  * Basic class for pairing a word/2-gram/palindrome with its frequency.

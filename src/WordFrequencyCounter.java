@@ -1,7 +1,4 @@
 // Hua Hsin 49399981
-package ir.assignments.three;
-
-import ir.assignments.three.Frequency;
 
 import java.io.File;
 import java.util.*;

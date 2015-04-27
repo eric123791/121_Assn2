@@ -1,7 +1,8 @@
-package ir.assignments.three;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.PrintWriter;
+import java.util.List;
 
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
@@ -30,7 +31,7 @@ public class MyCrawlController  {
 		 * numberOfCrawlers shows the number of concurrent threads that should
 		 * be initiated for crawling.
 		 */
-		int numberOfCrawlers = 5;		
+		int numberOfCrawlers = 7;
 		String userAgent = "UCI Inf141-CS121 crawler 49399981";
 		int timeOut = 1000*60*15;
 
@@ -38,9 +39,11 @@ public class MyCrawlController  {
 		config.setUserAgentString(userAgent);
 
 		config.setCrawlStorageFolder(crawlStorageFolder);
-		config.setPolitenessDelay(500);
+		config.setPolitenessDelay(600);
 		config.setResumableCrawling(false);
 		config.setConnectionTimeout(timeOut);
+		config.setSocketTimeout(timeOut);
+
 
 		/*
 		 * Instantiate the controller for this crawl.
@@ -63,13 +66,34 @@ public class MyCrawlController  {
 		 * Start the crawl. This is a blocking operation, meaning that your code
 		 * will reach the line after this only when crawling is finished.
 		 */
-		
+
 		long start = System.currentTimeMillis()/1000;
-		
-        controller.start(Crawler.class, numberOfCrawlers);  
-        
+
+        controller.start(Crawler.class, numberOfCrawlers);
+
         long end = System.currentTimeMillis()/1000;
         long totalTime = end - start;
+
+
+        System.out.println("finished");
+        PrintWriter writer = new PrintWriter("Answers.txt");
+        //Answer 1
+        writer.write("1. It took " + totalTime + " secs to finish.");
+        //Answer 2
+        writer.write("2. There are " + Crawler.numUrl + " unique page.");
+        //Answer 3
+        writer.write("3. There are " + Crawler.numSubDomain + "subdomains.");
+        Crawler.printSubDomain();
+        //Answer 4
+        writer.write ("4. The longest page is " + Crawler.longestPageUrl + ".");
+		writer.close();
+        //Answer 5
+		Crawler.print500Words();
+
+		Crawler.printAllWrods();
 		
+
+
+
 	}
 }
